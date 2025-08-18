@@ -1,0 +1,47 @@
+// Component-specific styles are already in the global styles.scss
+// This file is kept for component-specific overrides if needed
+
+.calculator-component {
+  width: 100%;
+}
+
+.calculator-container{
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-rows: auto;
+}
+
+.input-area {
+  height: 100%;
+  .expression-input{
+    height: 100%;
+  }
+}
+
+.toolbar {
+  grid-column: span 2;
+}
+
+// Mobile responsiveness enhancements
+@media (max-width: 480px) {
+  .help-text {
+    .example {
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+  }
+  
+  .calculation-result {
+    .expression {
+      font-size: 13px;
+    }
+    
+    .result {
+      font-size: 16px;
+    }
+  }
+}
