@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { evaluate } from 'mathjs';
+import * as math from 'mathjs';
 
 interface CalculationResult {
   expression: string;
@@ -89,7 +89,7 @@ export class CalculatorComponent {
   private evaluateExpression(expression: string): number {
     try {
       // Use math.js evaluate function for safe mathematical expression evaluation
-      const result = evaluate(expression);
+      const result = math.evaluate(expression);
       
       if (typeof result !== 'number' || !isFinite(result)) {
         throw new Error('Invalid result');
