@@ -30,3 +30,5 @@ yarn-error.log*
 release/
 
 electron/text-calculator/
+
+electron/dist/text-calculator/

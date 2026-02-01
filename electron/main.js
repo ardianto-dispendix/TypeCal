@@ -11,9 +11,13 @@ function createWindow() {
     height: 310,
     minWidth: 600,
     minHeight: 310,
+    maxWidth: 600,
+    maxHeight: 310,
     backgroundColor: '#212225',
     show: false,    
-    frame: false,    
+    frame: true,
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 12 },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -21,6 +25,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
+
+  mainWindow.setTitle('TypeCal');
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
 

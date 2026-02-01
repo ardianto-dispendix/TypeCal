@@ -20,11 +20,9 @@ export class CalculatorComponent implements AfterViewInit {
   results: CalculationResult[] = [];
   
   constructor() {
-    //this.addExample();
   }
 
   ngAfterViewInit(): void {
-    // Ensure initial layout is consistent even before the first input event.
     queueMicrotask(() => this.resizeInputToContent());
   }
   
