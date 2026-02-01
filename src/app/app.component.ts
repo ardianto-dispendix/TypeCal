@@ -4,8 +4,6 @@ import { Component } from '@angular/core';
   selector: 'app-root',
   template: `
     <div class="container">
-      <h1>Text Calculator</h1>
-      <p>A mathematical expression calculator similar to Numi</p>
       <app-calculator></app-calculator>
     </div>
   `,

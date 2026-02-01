@@ -1,17 +1,19 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 const isDev = !app.isPackaged;
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 720,
-    minWidth: 900,
-    minHeight: 600,
-    backgroundColor: '#f5f5f5',
-    show: false,
+    width: 600,
+    height: 310,
+    minWidth: 600,
+    minHeight: 310,
+    backgroundColor: '#212225',
+    show: false,    
+    frame: false,    
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -36,11 +38,11 @@ function createWindow() {
     }
     
     console.log('Loading file:', indexPath);
-    mainWindow.loadURL(url.format({
-      pathname: indexPath,
-      protocol: 'file:',
-      slashes: true
-    }));
+    console.log('File exists:', fs.existsSync(indexPath));
+    mainWindow.loadURL(pathToFileURL(indexPath).href);
+    
+    // Open dev tools to see any errors (optional - can be removed)
+    // mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
   // Log any errors
@@ -52,6 +54,10 @@ function createWindow() {
     console.error(`Failed to load: ${errorCode} ${errorDescription}`);
   });
 
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer] [${level}] ${message} (${sourceId}:${line})`);
+  });
+
   // Open external links in the system browser.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -60,6 +66,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Remove the menu bar
+  Menu.setApplicationMenu(null);
+  
   createWindow();
 
   app.on('activate', () => {
