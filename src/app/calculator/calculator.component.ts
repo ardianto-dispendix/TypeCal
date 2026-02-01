@@ -1,5 +1,5 @@
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import { evaluate } from 'mathjs';
+import { Component } from '@angular/core';
+import * as math from 'mathjs';
 
 interface CalculationResult {
   result: string;
@@ -102,7 +102,8 @@ export class CalculatorComponent implements AfterViewInit {
   
   private evaluateExpression(expression: string): number {
     try {
-      const result = evaluate(expression);
+      // Use math.js evaluate function for safe mathematical expression evaluation
+      const result = math.evaluate(expression);
       
       if (typeof result !== 'number' || !isFinite(result)) {
         throw new Error('Invalid result');
