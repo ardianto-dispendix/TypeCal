@@ -9,7 +9,7 @@
     "build": "ng build",
     "build:web": "ng build",
     "dist:mac": "npm run build:web && cp -r dist electron/ && electron-builder --mac",
-    "dist:win": "npm run build:web && cp -r dist electron/ && electron-builder --win",
+    "dist:win": "npm run build:web && xcopy dist electron\\ /E /I /Y && set CSC_KEY_PASSWORD= && electron-builder --win",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
