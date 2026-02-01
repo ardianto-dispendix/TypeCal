@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild  } from '@angular/core';
 import * as math from 'mathjs';
 
 interface CalculationResult {
