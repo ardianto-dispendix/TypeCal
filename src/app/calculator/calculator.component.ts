@@ -1,5 +1,6 @@
 import { Component, AfterViewInit, ElementRef, ViewChild  } from '@angular/core';
 import * as math from 'mathjs';
+import { CurrencyService } from '../services/currency.service';
 
 interface CalculationResult {
   result: string;
@@ -18,8 +19,9 @@ export class CalculatorComponent implements AfterViewInit {
 
   inputText: string = '';
   results: CalculationResult[] = [];
+  variables: Map<string, number> = new Map();
   
-  constructor() {
+  constructor(private currencyService: CurrencyService) {
   }
 
   ngAfterViewInit(): void {
@@ -50,20 +52,71 @@ export class CalculatorComponent implements AfterViewInit {
       const trimmedLine = line.trim();
       if (trimmedLine && this.isCalculableExpression(trimmedLine)) {
         try {
-          const result = this.evaluateExpression(trimmedLine);
-          newResults.push({
-            result: this.formatResult(result),
-            isError: false,
-            timestamp: new Date(),
-            isEmptySpace: false
-          });
-          if (trimmedLine.length > 31) {
+          const varAssignment = this.parseVariableAssignment(trimmedLine);
+          if (varAssignment) {
+            const { varName, expression } = varAssignment;
+            const result = this.evaluateExpression(expression);
+            this.variables.set(varName, result);
             newResults.push({
-              result: "",
+              result: this.formatResult(result),
               isError: false,
               timestamp: new Date(),
-              isEmptySpace: true
+              isEmptySpace: false
             });
+            if (trimmedLine.length > 31) {
+              newResults.push({
+                result: "",
+                isError: false,
+                timestamp: new Date(),
+                isEmptySpace: true
+              });
+            }
+          } else {
+            const currencyMatch = this.parseCurrencyConversion(trimmedLine);
+            if (currencyMatch) {
+              const { amount, fromCurrency, toCurrency } = currencyMatch;
+              const convertedAmount = this.currencyService.convert(amount, fromCurrency, toCurrency);
+              
+              if (convertedAmount !== null) {
+                newResults.push({
+                  result: this.formatResult(convertedAmount),
+                  isError: false,
+                  timestamp: new Date(),
+                  isEmptySpace: false
+                });
+                if (trimmedLine.length > 31) {
+                  newResults.push({
+                    result: "",
+                    isError: false,
+                    timestamp: new Date(),
+                    isEmptySpace: true
+                  });
+                }
+              } else {
+                newResults.push({
+                  result: '',
+                  isError: true,
+                  timestamp: new Date(),
+                  isEmptySpace: false
+                });
+              }
+            } else {
+              const result = this.evaluateExpression(trimmedLine);
+              newResults.push({
+                result: this.formatResult(result),
+                isError: false,
+                timestamp: new Date(),
+                isEmptySpace: false
+              });
+              if (trimmedLine.length > 31) {
+                newResults.push({
+                  result: "",
+                  isError: false,
+                  timestamp: new Date(),
+                  isEmptySpace: true
+                });
+              }
+            }
           }
         } catch (error) {
           newResults.push({
@@ -78,8 +131,49 @@ export class CalculatorComponent implements AfterViewInit {
     console.log(newResults.length)
     this.results = newResults;
   }
+
+  private parseVariableAssignment(text: string): { varName: string; expression: string } | null {
+    // Pattern: "varname = expression"
+    const assignmentPattern = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/;
+    const match = text.match(assignmentPattern);
+    
+    if (match) {
+      const varName = match[1];
+      const expression = match[2].trim();
+      if (!text.includes('==') && !text.includes('!=')) {
+        return { varName, expression };
+      }
+    }
+    
+    return null;
+  }
+
+  private parseCurrencyConversion(text: string): { amount: number; fromCurrency: string; toCurrency: string } | null {
+    // Pattern: "100 usd to idr" or "100usd to idr" or "100 usd to idr"
+    const currencyPattern = /^(\d+\.?\d*)\s*([a-zA-Z]{3})\s+to\s+([a-zA-Z]{3})$/i;
+    const match = text.match(currencyPattern);
+    
+    if (match) {
+      const amount = parseFloat(match[1]);
+      const fromCurrency = match[2];
+      const toCurrency = match[3];
+      
+      if (this.currencyService.isCurrencyValid(fromCurrency) && this.currencyService.isCurrencyValid(toCurrency)) {
+        return { amount, fromCurrency, toCurrency };
+      }
+    }
+    
+    return null;
+  }
   
   private isCalculableExpression(text: string): boolean {
+    if (this.parseVariableAssignment(text)) {
+      return true;
+    }
+    if (this.parseCurrencyConversion(text)) {
+      return true;
+    }
+
     const mathPatterns = [
       /\d+[\+\-\*\/\%\^]\d+/,  // Basic arithmetic
       /\d+\s*[\+\-\*\/\%\^]\s*\d+/,  // With spaces
@@ -93,6 +187,7 @@ export class CalculatorComponent implements AfterViewInit {
       /\(\s*\d+/,  // Parentheses with numbers
       /\d+\s*\)/,
       /\bpi\b|\be\b/i,  // Constants
+      /[a-zA-Z_][a-zA-Z0-9_]*/,  // Variables
     ];
     
     return mathPatterns.some(pattern => pattern.test(text));
@@ -100,13 +195,14 @@ export class CalculatorComponent implements AfterViewInit {
   
   private evaluateExpression(expression: string): number {
     try {
-      // Use math.js evaluate function for safe mathematical expression evaluation
-      const result = math.evaluate(expression);
-      
+      const scope: any = {};
+      this.variables.forEach((value, key) => {
+        scope[key] = value;
+      });
+      const result = math.evaluate(expression, scope);
       if (typeof result !== 'number' || !isFinite(result)) {
         throw new Error('Invalid result');
       }
-      
       return result;
     } catch (error) {
       throw new Error('Cannot evaluate expression');
@@ -114,17 +210,23 @@ export class CalculatorComponent implements AfterViewInit {
   }
   
   private formatResult(result: number): string {
-    if (Number.isInteger(result)) {
-      return result.toString();
+    const rounded = Math.round(result * 100) / 100;
+    const parts = rounded.toFixed(2).split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    let cleanDecimal = decimalPart.replace(/0+$/, '');
+    if (cleanDecimal) {
+      return `${formattedInteger},${cleanDecimal}`;
     }
     
-    const rounded = Math.round(result * 1000000) / 1000000;
-    return rounded.toString().replace(/\.?0+$/, '');
+    return formattedInteger;
   }
   
   clearAll(): void {
     this.inputText = '';
     this.results = [];
+    this.variables.clear();
     this.resizeInputToContent();
   }
 
@@ -144,25 +246,5 @@ export class CalculatorComponent implements AfterViewInit {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(resultText);
     }
-  }
-  
-  private addExample(): void {
-    this.inputText = `Calculate the area of a circle with radius 5
-pi * 5^2
-
-Convert 100 fahrenheit to celsius  
-(100 - 32) * 5/9
-
-Calculate compound interest
-1000 * (1 + 0.05)^10
-
-Basic calculations
-15 + 25 * 2
-sqrt(144)
-sin(45 * pi/180)
-log(100)
-abs(-42)`;
-    
-    this.calculateFromText();
   }
 }
