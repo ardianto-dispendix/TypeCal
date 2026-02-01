@@ -15,11 +15,8 @@
   grid-template-rows: auto;
 }
 
-.input-area {
-  height: 100%;
-  .expression-input{
-    height: 100%;
-  }
+.operation-area{
+  grid-column: span 2;
 }
 
 .toolbar {
@@ -37,11 +34,11 @@
   
   .calculation-result {
     .expression {
-      font-size: 13px;
+      font-size: 11px;
     }
     
     .result {
-      font-size: 16px;
+      font-size: 11px;
     }
   }
 }

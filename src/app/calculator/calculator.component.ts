@@ -1,11 +1,11 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { evaluate } from 'mathjs';
 
 interface CalculationResult {
-  expression: string;
   result: string;
   isError: boolean;
   timestamp: Date;
+  isEmptySpace: boolean;
 }
 
 @Component({
@@ -13,17 +13,24 @@ interface CalculationResult {
   templateUrl: './calculator.component.html',
   styleUrls: ['./calculator.component.scss']
 })
-export class CalculatorComponent {
+export class CalculatorComponent implements AfterViewInit {
+  @ViewChild('expressionInput') private expressionInput?: ElementRef<HTMLTextAreaElement>;
+
   inputText: string = '';
   results: CalculationResult[] = [];
   
   constructor() {
-    // Add some example calculations on startup
-    this.addExample();
+    //this.addExample();
+  }
+
+  ngAfterViewInit(): void {
+    // Ensure initial layout is consistent even before the first input event.
+    queueMicrotask(() => this.resizeInputToContent());
   }
   
   onInputChange(): void {
     this.calculateFromText();
+    this.resizeInputToContent();
   }
   
   onKeyDown(event: KeyboardEvent): void {
@@ -47,27 +54,34 @@ export class CalculatorComponent {
         try {
           const result = this.evaluateExpression(trimmedLine);
           newResults.push({
-            expression: trimmedLine,
             result: this.formatResult(result),
             isError: false,
-            timestamp: new Date()
+            timestamp: new Date(),
+            isEmptySpace: false
           });
+          if (trimmedLine.length > 31) {
+            newResults.push({
+              result: "",
+              isError: false,
+              timestamp: new Date(),
+              isEmptySpace: true
+            });
+          }
         } catch (error) {
           newResults.push({
-            expression: trimmedLine,
-            result: 'Error: Invalid expression',
+            result: '',
             isError: true,
-            timestamp: new Date()
+            timestamp: new Date(),
+            isEmptySpace: false
           });
         }
       }
     }
-    
+    console.log(newResults.length)
     this.results = newResults;
   }
   
   private isCalculableExpression(text: string): boolean {
-    // Check if the line contains mathematical expressions
     const mathPatterns = [
       /\d+[\+\-\*\/\%\^]\d+/,  // Basic arithmetic
       /\d+\s*[\+\-\*\/\%\^]\s*\d+/,  // With spaces
@@ -88,7 +102,6 @@ export class CalculatorComponent {
   
   private evaluateExpression(expression: string): number {
     try {
-      // Use math.js evaluate function for safe mathematical expression evaluation
       const result = evaluate(expression);
       
       if (typeof result !== 'number' || !isFinite(result)) {
@@ -102,12 +115,10 @@ export class CalculatorComponent {
   }
   
   private formatResult(result: number): string {
-    // Format the result for better display
     if (Number.isInteger(result)) {
       return result.toString();
     }
     
-    // Round to 6 decimal places and remove trailing zeros
     const rounded = Math.round(result * 1000000) / 1000000;
     return rounded.toString().replace(/\.?0+$/, '');
   }
@@ -115,11 +126,20 @@ export class CalculatorComponent {
   clearAll(): void {
     this.inputText = '';
     this.results = [];
+    this.resizeInputToContent();
+  }
+
+  private resizeInputToContent(): void {
+    const textarea = this.expressionInput?.nativeElement;
+    if (!textarea) return;
+
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
   }
   
   copyResults(): void {
     const resultText = this.results
-      .map(r => `${r.expression} = ${r.result}`)
+      .map(r => `${r.result}`)
       .join('\n');
     
     if (navigator.clipboard) {

@@ -47,7 +47,7 @@ sqrt(144)
 sin(45 * pi/180)
 ```
 
-## Development
+## Development & Deployment
 
 ### Prerequisites
 - Node.js (version 18 or higher)
@@ -58,22 +58,54 @@ sin(45 * pi/180)
 npm install
 ```
 
-### Development Server
+### Web Development
+
+#### Development Server
 ```bash
-npm start
+npm run start:web
 ```
 Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
 
-### Build
+#### Build for Web
 ```bash
-npm run build
+npm run build:web
 ```
-The build artifacts will be stored in the `dist/` directory.
+The build artifacts will be stored in the `dist/text-calculator/` directory.
 
-### Running Tests
+#### Running Tests
 ```bash
 npm test
 ```
+
+### Desktop Application (Electron)
+
+#### Development Mode
+Run the Angular dev server and Electron simultaneously:
+```bash
+npm run desktop
+```
+This will open the app in a desktop window and automatically reload on code changes.
+
+#### Build for macOS
+```bash
+npm run dist:mac
+```
+The `.dmg` installer will be created in `release/mac-arm64/` (or `mac-x64/` depending on architecture).
+
+#### Build for Windows
+Run this command **on Windows** for native executable:
+```bash
+npm run dist:win
+```
+The `.exe` installer will be created in `release/win-unpacked/`.
+
+**Note**: For best results, build Windows executables on Windows itself. Cross-compilation is supported but native building is recommended.
+
+#### Distribution Details
+- **macOS**: Creates a `.dmg` installer that can be shared and installed
+- **Windows**: Creates an NSIS installer `.exe` with options for custom installation directory
+- **Output**: All packages are built to the `release/` folder
+- **App Name**: TypeCal
 
 ## Project Structure
 

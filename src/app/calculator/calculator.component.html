@@ -1,33 +1,17 @@
 <div class="calculator-container">
-  <div class="input-area">
-    <textarea
-      class="expression-input"
-      [(ngModel)]="inputText"
-      (ngModelChange)="onInputChange()"
-      (keydown)="onKeyDown($event)"
-      placeholder="Type your mathematical expressions here...
+  <div class="operation-area">
+      <div class="input-area">
+      <textarea #expressionInput class="expression-input" [(ngModel)]="inputText" (ngModelChange)="onInputChange()"
+        (keydown)="onKeyDown($event)" placeholder="Type your mathematical expressions here..">
+      </textarea>
+      </div>
 
-Examples: 
-• 15 + 25 * 2
-• sqrt(144)
-• (100 - 32) * 5/9  
-• 3.14159 * 5^2
-• sin(45 * pi/180)
-• 1000 * (1 + 0.05)^10
-
-Press Cmd+Enter (Mac) or Ctrl+Enter (Windows) to calculate"
-    ></textarea>
-  </div>
-
-  <div class="results-area" *ngIf="results.length > 0">
-    <div 
-      *ngFor="let result of results" 
-      class="calculation-result"
-      [class.error]="result.isError"
-    >
-      <div class="expression">{{ result.expression }}</div>
-      <div class="result">= {{ result.result }}</div>
-    </div>
+      <div class="results-area" *ngIf="results.length >= 0">
+      <div *ngFor="let result of results" class="calculation-result" [class.error]="result.isError"
+        [class.empty-space]="result.isEmptySpace">
+        <div class="result">{{ result.result }}</div>
+      </div>
+      </div>
   </div>
 
   <div class="toolbar">
@@ -48,7 +32,7 @@ Press Cmd+Enter (Mac) or Ctrl+Enter (Windows) to calculate"
       <span class="example">pi</span>
       <span class="example">e</span>
     </div>
-    
+
     <div>
       <button class="btn btn-secondary" (click)="copyResults()" *ngIf="results.length > 0">
         Copy Results
