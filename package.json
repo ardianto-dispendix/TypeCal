@@ -10,6 +10,7 @@
     "build:web": "ng build",
     "dist:mac": "npm run build:web && cp -r dist electron/ && electron-builder --mac",
     "dist:win": "npm run build:web && xcopy dist electron\\ /E /I /Y && set CSC_KEY_PASSWORD= && electron-builder --win",
+    "icon:generate": "node scripts/generate-icons.js",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -61,6 +62,7 @@
       "package.json"
     ],
     "mac": {
+      "icon": "build/icon.png",
       "category": "public.app-category.productivity",
       "target": [
         "dmg"
@@ -68,6 +70,7 @@
       "sign": false
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "nsis"
       ]
