@@ -1,6 +1,8 @@
-import { Component, AfterViewInit, ElementRef, ViewChild  } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild, OnInit } from '@angular/core';
 import * as math from 'mathjs';
 import { CurrencyService } from '../services/currency.service';
+import { NotionService } from '../services/notion.service';
+import type { NotionConfig, NotionTask } from '../services/notion.types';
 
 interface CalculationResult {
   result: string;
@@ -14,14 +16,31 @@ interface CalculationResult {
   templateUrl: './calculator.component.html',
   styleUrls: ['./calculator.component.scss']
 })
-export class CalculatorComponent implements AfterViewInit {
+export class CalculatorComponent implements AfterViewInit, OnInit {
   @ViewChild('expressionInput') private expressionInput?: ElementRef<HTMLTextAreaElement>;
 
   inputText: string = '';
   results: CalculationResult[] = [];
   variables: Map<string, number> = new Map();
+  notionTasks: NotionTask[] = [];
+  notionLoading = false;
+  notionError = '';
+  notionAvailable = false;
+  notionConfigured = false;
+  notionApiKeyInput = '';
+  notionDbIdInput = '';
   
-  constructor(private currencyService: CurrencyService) {
+  constructor(
+    private currencyService: CurrencyService,
+    private notionService: NotionService
+  ) {
+  }
+
+  ngOnInit(): void {
+    this.notionAvailable = this.notionService.isAvailable();
+    if (this.notionAvailable) {
+      this.loadNotionConfig();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -245,6 +264,60 @@ export class CalculatorComponent implements AfterViewInit {
     
     if (navigator.clipboard) {
       navigator.clipboard.writeText(resultText);
+    }
+  }
+
+  async refreshNotionTasks(): Promise<void> {
+    this.notionLoading = true;
+    this.notionError = '';
+    try {
+      this.notionTasks = await this.notionService.getTodayOpenTasks();
+      this.notionConfigured = true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load Notion tasks';
+      this.notionError = message;
+      this.notionTasks = [];
+      if (message.toLowerCase().includes('missing notion_api_key')) {
+        this.notionConfigured = false;
+      }
+    } finally {
+      this.notionLoading = false;
+    }
+  }
+
+  async loadNotionConfig(): Promise<void> {
+    try {
+      const config = await this.notionService.getConfig();
+      this.notionConfigured = !!config.notionApiKey;
+      this.notionDbIdInput = config.notionTasksDbId || '';
+      if (this.notionConfigured) {
+        await this.refreshNotionTasks();
+      }
+    } catch (error) {
+      this.notionConfigured = false;
+    }
+  }
+
+  async saveNotionConfig(): Promise<void> {
+    this.notionError = '';
+    const payload: NotionConfig = {
+      notionApiKey: this.notionApiKeyInput.trim(),
+      notionTasksDbId: this.notionDbIdInput.trim(),
+    };
+
+    if (!payload.notionApiKey) {
+      this.notionError = 'Please enter a Notion API key.';
+      return;
+    }
+
+    try {
+      const updated = await this.notionService.setConfig(payload);
+      this.notionConfigured = !!updated.notionApiKey;
+      this.notionApiKeyInput = '';
+      await this.refreshNotionTasks();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save Notion settings';
+      this.notionError = message;
     }
   }
 }
