@@ -14,44 +14,99 @@
       </div>
   </div>
 
-  <div class="notion-panel">
-    <div class="notion-header">
-      <div class="notion-title">Today — Open Tasks</div>
-      <button class="btn btn-secondary btn-small" (click)="refreshNotionTasks()" [disabled]="notionLoading || !notionAvailable || !notionConfigured">
-        Refresh
-      </button>
-    </div>
-
-    <div class="notion-body" *ngIf="notionAvailable; else notionUnavailable">
-      <div class="notion-setup" *ngIf="!notionConfigured">
-        <div class="notion-state">Enter your Notion API key once to enable tasks.</div>
-        <div class="notion-inputs">
-          <input class="notion-input" type="password" placeholder="Notion API key" [(ngModel)]="notionApiKeyInput" />
-          <input class="notion-input" type="text" placeholder="Tasks DB ID (optional)" [(ngModel)]="notionDbIdInput" />
-          <button class="btn btn-small" (click)="saveNotionConfig()" [disabled]="notionLoading">Save</button>
-        </div>
+  <div class="integrations-panel">
+    <div class="integration-column notion-panel">
+      <div class="notion-header">
+        <div class="notion-title">📝 Today - Open Tasks</div>
+        <button
+          class="icon-btn"
+          type="button"
+          title="Refresh Notion tasks"
+          aria-label="Refresh Notion tasks"
+          (click)="refreshNotionTasks()"
+          [disabled]="notionLoading || !notionAvailable || !notionConfigured">
+          ↻
+        </button>
       </div>
 
-      <div class="notion-state" *ngIf="notionLoading">Loading...</div>
-      <div class="notion-state error" *ngIf="notionError">{{ notionError }}</div>
-
-      <div class="notion-empty" *ngIf="!notionLoading && !notionError && notionTasks.length === 0">
-        No open tasks due today.
-      </div>
-
-      <ul class="notion-list" *ngIf="!notionLoading && !notionError && notionTasks.length > 0">
-        <li *ngFor="let task of notionTasks" class="notion-item">
-          <div class="task-title">{{ task.title }}</div>
-          <div class="task-meta">
-            <span class="task-project" *ngIf="task.project">{{ task.project }}</span>
-            <span class="task-due" *ngIf="task.due">{{ task.due }}</span>
+      <div class="notion-body" *ngIf="notionAvailable; else notionUnavailable">
+        <div class="notion-setup" *ngIf="!notionConfigured">
+          <div class="notion-state">Enter your Notion API key once to enable tasks.</div>
+          <div class="notion-inputs">
+            <input class="notion-input" type="password" placeholder="Notion API key" [(ngModel)]="notionApiKeyInput" />
+            <input class="notion-input" type="text" placeholder="Tasks DB ID (optional)" [(ngModel)]="notionDbIdInput" />
+            <button class="btn btn-small" (click)="saveNotionConfig()" [disabled]="notionLoading">Save</button>
           </div>
-        </li>
-      </ul>
+        </div>
+
+        <div class="notion-state" *ngIf="notionLoading">Loading...</div>
+        <div class="notion-state error" *ngIf="notionError">{{ notionError }}</div>
+
+        <div class="notion-empty" *ngIf="!notionLoading && !notionError && notionTasks.length === 0">
+          ✨ No open tasks due today.
+        </div>
+
+        <ul class="notion-list" *ngIf="!notionLoading && !notionError && notionTasks.length > 0">
+          <li *ngFor="let task of notionTasks" class="notion-item">
+            <div class="item-title">🗒️ {{ task.title }}</div>
+            <div class="item-meta">
+              <span class="item-meta-value" *ngIf="task.project">📁 {{ task.project }}</span>
+              <span class="item-meta-value" *ngIf="task.due">📆 {{ task.due }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <ng-template #notionUnavailable>
+        <div class="notion-state error">Notion integration unavailable.</div>
+      </ng-template>
     </div>
 
-    <ng-template #notionUnavailable>
-      <div class="notion-state error">Notion integration unavailable. Run the app with `NOTION_API_KEY` set.</div>
-    </ng-template>
+    <div class="integration-column calendar-panel">
+      <div class="notion-header">
+        <div class="notion-title">📅 Today - Calendar Events</div>
+        <button
+          class="icon-btn"
+          type="button"
+          title="Refresh calendar events"
+          aria-label="Refresh calendar events"
+          (click)="refreshCalendarEvents()"
+          [disabled]="calendarLoading || !calendarAvailable || !calendarConfigured">
+          ↻
+        </button>
+      </div>
+
+      <div class="notion-body" *ngIf="calendarAvailable; else calendarUnavailable">
+        <div class="notion-setup" *ngIf="!calendarConfigured">
+          <div class="notion-state">Set credential and token paths if they are not in app data.</div>
+          <div class="notion-inputs">
+            <input class="notion-input" type="text" placeholder="credential.json path (optional)" [(ngModel)]="googleCredentialsPathInput" />
+            <input class="notion-input" type="text" placeholder="token.json path (optional)" [(ngModel)]="googleTokenPathInput" />
+            <button class="btn btn-small" (click)="saveGoogleCalendarConfig()" [disabled]="calendarLoading">Save</button>
+          </div>
+        </div>
+
+        <div class="notion-state" *ngIf="calendarLoading">Loading...</div>
+        <div class="notion-state error" *ngIf="calendarError">{{ calendarError }}</div>
+
+        <div class="notion-empty" *ngIf="!calendarLoading && !calendarError && calendarEvents.length === 0">
+          🎉 No events today.
+        </div>
+
+        <ul class="notion-list" *ngIf="!calendarLoading && !calendarError && calendarEvents.length > 0">
+          <li *ngFor="let event of calendarEvents" class="notion-item">
+            <div class="item-title">📌 {{ event.title }}</div>
+            <div class="item-meta">
+              <span class="item-meta-value">⏰ {{ formatCalendarTime(event) }}</span>
+              <span class="item-meta-value">🗓️ {{ event.calendarName }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <ng-template #calendarUnavailable>
+        <div class="notion-state error">Google Calendar integration unavailable.</div>
+      </ng-template>
+    </div>
   </div>
 </div>

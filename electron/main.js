@@ -5,16 +5,17 @@ const { pathToFileURL } = require('url');
 
 const isDev = !app.isPackaged;
 const { registerNotionIpc } = require('./notion');
+const { registerGoogleCalendarIpc } = require('./google-calendar');
 
 function createWindow() {
   const isMac = process.platform === 'darwin';
   
   const mainWindow = new BrowserWindow({
-    width: 600,
+    width: 800,
     height: 520,
-    minWidth: 600,
+    minWidth: 800,
     minHeight: 520,
-    maxWidth: 600,
+    maxWidth: 1000,
     maxHeight: 720,
     backgroundColor: '#212225',
     show: false,    
@@ -68,6 +69,7 @@ function createWindow() {
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   registerNotionIpc(app, ipcMain);
+  registerGoogleCalendarIpc(app, ipcMain);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -2,6 +2,8 @@ import { Component, AfterViewInit, ElementRef, ViewChild, OnInit } from '@angula
 import * as math from 'mathjs';
 import { CurrencyService } from '../services/currency.service';
 import { NotionService } from '../services/notion.service';
+import { GoogleCalendarService } from '../services/google-calendar.service';
+import type { GoogleCalendarConfig, GoogleCalendarEvent } from '../services/google-calendar.types';
 import type { NotionConfig, NotionTask } from '../services/notion.types';
 
 interface CalculationResult {
@@ -29,17 +31,29 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   notionConfigured = false;
   notionApiKeyInput = '';
   notionDbIdInput = '';
+  calendarEvents: GoogleCalendarEvent[] = [];
+  calendarLoading = false;
+  calendarError = '';
+  calendarAvailable = false;
+  calendarConfigured = false;
+  googleCredentialsPathInput = '';
+  googleTokenPathInput = '';
   
   constructor(
     private currencyService: CurrencyService,
-    private notionService: NotionService
+    private notionService: NotionService,
+    private googleCalendarService: GoogleCalendarService
   ) {
   }
 
   ngOnInit(): void {
     this.notionAvailable = this.notionService.isAvailable();
+    this.calendarAvailable = this.googleCalendarService.isAvailable();
     if (this.notionAvailable) {
       this.loadNotionConfig();
+    }
+    if (this.calendarAvailable) {
+      this.loadGoogleCalendarConfig();
     }
   }
 
@@ -290,9 +304,7 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
       const config = await this.notionService.getConfig();
       this.notionConfigured = !!config.notionApiKey;
       this.notionDbIdInput = config.notionTasksDbId || '';
-      if (this.notionConfigured) {
-        await this.refreshNotionTasks();
-      }
+      await this.refreshNotionTasks();
     } catch (error) {
       this.notionConfigured = false;
     }
@@ -319,5 +331,61 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
       const message = error instanceof Error ? error.message : 'Failed to save Notion settings';
       this.notionError = message;
     }
+  }
+
+  async refreshCalendarEvents(): Promise<void> {
+    this.calendarLoading = true;
+    this.calendarError = '';
+    try {
+      this.calendarEvents = await this.googleCalendarService.getTodayEvents();
+      this.calendarConfigured = true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load Google Calendar events';
+      this.calendarError = message;
+      this.calendarEvents = [];
+      if (message.toLowerCase().includes('missing google')) {
+        this.calendarConfigured = false;
+      }
+    } finally {
+      this.calendarLoading = false;
+    }
+  }
+
+  async loadGoogleCalendarConfig(): Promise<void> {
+    try {
+      const config = await this.googleCalendarService.getConfig();
+      this.googleCredentialsPathInput = config.googleCredentialsPath || '';
+      this.googleTokenPathInput = config.googleTokenPath || '';
+      await this.refreshCalendarEvents();
+    } catch (error) {
+      this.calendarConfigured = false;
+    }
+  }
+
+  async saveGoogleCalendarConfig(): Promise<void> {
+    this.calendarError = '';
+    const payload: GoogleCalendarConfig = {
+      googleCredentialsPath: this.googleCredentialsPathInput.trim(),
+      googleTokenPath: this.googleTokenPathInput.trim(),
+    };
+
+    try {
+      await this.googleCalendarService.setConfig(payload);
+      await this.refreshCalendarEvents();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save Google Calendar settings';
+      this.calendarError = message;
+    }
+  }
+
+  formatCalendarTime(event: GoogleCalendarEvent): string {
+    if (event.isAllDay) {
+      return 'All day';
+    }
+    const start = event.start ? new Date(event.start) : null;
+    if (!start || Number.isNaN(start.getTime())) {
+      return '-';
+    }
+    return start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 }
