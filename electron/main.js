@@ -1,20 +1,21 @@
-const { app, BrowserWindow, shell, Menu } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 
 const isDev = !app.isPackaged;
+const { registerNotionIpc } = require('./notion');
 
 function createWindow() {
   const isMac = process.platform === 'darwin';
   
   const mainWindow = new BrowserWindow({
     width: 600,
-    height: 310,
+    height: 520,
     minWidth: 600,
-    minHeight: 310,
+    minHeight: 520,
     maxWidth: 600,
-    maxHeight: 310,
+    maxHeight: 720,
     backgroundColor: '#212225',
     show: false,    
     frame: isMac,
@@ -66,6 +67,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  registerNotionIpc(app, ipcMain);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
