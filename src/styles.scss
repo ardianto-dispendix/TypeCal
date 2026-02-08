@@ -146,11 +146,50 @@ body {
   font-size: 12px;
 }
 
-.notion-panel {
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #c8cdd2;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e1e4e7;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.integrations-panel {
   grid-column: span 2;
   padding: 12px 20px 18px;
   background: #1a1b1e;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  
+}
+
+.integration-column {
+  min-height: 180px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px;
+  background: #1f2025;
 }
 
 .notion-header {
@@ -229,19 +268,26 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.task-title {
+.item-title {
   font-size: 13px;
   color: #f1f3f4;
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   margin-bottom: 4px;
 }
 
-.task-meta {
+.item-meta {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
   color: #9aa0a6;
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  gap: 8px;
+}
+
+.item-meta-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .help-text {
@@ -262,6 +308,10 @@ body {
   .expression-input {
     font-size: 16px;
     min-height: 120px;
+  }
+
+  .integrations-panel {
+    grid-template-columns: 1fr;
   }
 
   .toolbar {
