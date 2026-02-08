@@ -5,6 +5,7 @@ import { NotionService } from '../services/notion.service';
 import { GoogleCalendarService } from '../services/google-calendar.service';
 import type { GoogleCalendarConfig, GoogleCalendarEvent } from '../services/google-calendar.types';
 import type { NotionConfig, NotionTask } from '../services/notion.types';
+import { TranslatorService } from '../services/translator.service';
 
 interface CalculationResult {
   result: string;
@@ -38,11 +39,13 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   calendarConfigured = false;
   googleCredentialsPathInput = '';
   googleTokenPathInput = '';
+  private calculationRunId = 0;
   
   constructor(
     private currencyService: CurrencyService,
     private notionService: NotionService,
-    private googleCalendarService: GoogleCalendarService
+    private googleCalendarService: GoogleCalendarService,
+    private translatorService: TranslatorService
   ) {
   }
 
@@ -62,17 +65,18 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   }
   
   onInputChange(): void {
-    this.calculateFromText();
+    void this.calculateFromText();
     this.resizeInputToContent();
   }
   
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-      this.calculateFromText();
+      void this.calculateFromText();
     }
   }
   
-  private calculateFromText(): void {
+  private async calculateFromText(): Promise<void> {
+    const runId = ++this.calculationRunId;
     if (!this.inputText.trim()) {
       this.results = [];
       return;
@@ -83,6 +87,33 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
     
     for (const line of lines) {
       const trimmedLine = line.trim();
+      const translationCommand = this.parseTranslationCommand(trimmedLine);
+      if (translationCommand) {
+        const translated = await this.translateLine(translationCommand.text, translationCommand.targetLanguage);
+        if (translated) {
+          newResults.push({
+            result: translated,
+            isError: false,
+            timestamp: new Date(),
+            isEmptySpace: false
+          });
+          if (trimmedLine.length > 31) {
+            newResults.push({
+              result: "",
+              isError: false,
+              timestamp: new Date(),
+              isEmptySpace: true
+            });
+          }
+        }
+        continue;
+      }
+
+      // A line starting with "trans" but not yet complete should not show calculator errors.
+      if (this.startsWithTranslationPrefix(trimmedLine)) {
+        continue;
+      }
+
       if (trimmedLine && this.isCalculableExpression(trimmedLine)) {
         try {
           const varAssignment = this.parseVariableAssignment(trimmedLine);
@@ -161,8 +192,57 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
         }
       }
     }
-    console.log(newResults.length)
-    this.results = newResults;
+    if (runId === this.calculationRunId) {
+      this.results = newResults;
+    }
+  }
+
+  private startsWithTranslationPrefix(text: string): boolean {
+    return /^trans\b/i.test(text);
+  }
+
+  private parseTranslationCommand(text: string): { targetLanguage: string; text: string } | null {
+    const commandPattern = /^trans\s+(en|de|bi)\s+(.+)$/i;
+    const match = text.match(commandPattern);
+    if (!match) {
+      return null;
+    }
+
+    const languageCode = match[1].toLowerCase();
+    const targetText = match[2].trim();
+    if (!targetText) {
+      return null;
+    }
+
+    const languageMap: Record<string, string> = {
+      en: 'English',
+      de: 'German',
+      bi: 'Bahasa Indonesia',
+    };
+
+    const targetLanguage = languageMap[languageCode];
+    if (!targetLanguage) {
+      return null;
+    }
+
+    return { targetLanguage, text: targetText };
+  }
+
+  private async translateLine(text: string, targetLanguage: string): Promise<string | null> {
+    if (!this.translatorService.isAvailable()) {
+      return null;
+    }
+    try {
+      const translated = await this.translatorService.translate({
+        text,
+        sourceLanguage: 'Auto',
+        targetLanguage,
+      });
+      return translated.translatedText?.trim() || null;
+    } catch (error) {
+      // If Codex CLI is unavailable or translation fails, keep the calculator output unchanged.
+      return null;
+    }
   }
 
   private parseVariableAssignment(text: string): { varName: string; expression: string } | null {

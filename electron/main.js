@@ -6,6 +6,7 @@ const { pathToFileURL } = require('url');
 const isDev = !app.isPackaged;
 const { registerNotionIpc } = require('./notion');
 const { registerGoogleCalendarIpc } = require('./google-calendar');
+const { registerTranslatorCliIpc } = require('./translator-cli');
 
 function createWindow() {
   const isMac = process.platform === 'darwin';
@@ -70,6 +71,7 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   registerNotionIpc(app, ipcMain);
   registerGoogleCalendarIpc(app, ipcMain);
+  registerTranslatorCliIpc(app, ipcMain);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

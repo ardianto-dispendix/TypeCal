@@ -8,4 +8,7 @@ contextBridge.exposeInMainWorld('typecal', {
   getTodayCalendarEvents: () => ipcRenderer.invoke('googleCalendar:getTodayEvents'),
   getGoogleCalendarConfig: () => ipcRenderer.invoke('googleCalendar:getConfig'),
   setGoogleCalendarConfig: (config) => ipcRenderer.invoke('googleCalendar:setConfig', config),
+  translateWithCli: (payload) => ipcRenderer.invoke('translator:translate', payload),
+  getTranslatorConfig: () => ipcRenderer.invoke('translator:getConfig'),
+  setTranslatorConfig: (config) => ipcRenderer.invoke('translator:setConfig', config),
 });
