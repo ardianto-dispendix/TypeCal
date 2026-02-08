@@ -14,6 +14,14 @@ interface CalculationResult {
   isEmptySpace: boolean;
 }
 
+type UnitCategory = 'length' | 'mass' | 'volume' | 'temperature';
+
+interface UnitDefinition {
+  category: UnitCategory;
+  toBase: (value: number) => number;
+  fromBase: (value: number) => number;
+}
+
 @Component({
   selector: 'app-calculator',
   templateUrl: './calculator.component.html',
@@ -40,6 +48,63 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   googleCredentialsPathInput = '';
   googleTokenPathInput = '';
   private calculationRunId = 0;
+  private readonly unitAliases: Record<string, string> = {
+    // Length
+    mm: 'mm', millimeter: 'mm', millimeters: 'mm',
+    cm: 'cm', centimeter: 'cm', centimeters: 'cm',
+    m: 'm', meter: 'm', meters: 'm',
+    km: 'km', kilometer: 'km', kilometers: 'km',
+    in: 'in', inch: 'in', inches: 'in',
+    ft: 'ft', foot: 'ft', feet: 'ft',
+    yd: 'yd', yard: 'yd', yards: 'yd',
+    mi: 'mi', mile: 'mi', miles: 'mi',
+    // Mass
+    mg: 'mg', milligram: 'mg', milligrams: 'mg',
+    g: 'g', gram: 'g', grams: 'g',
+    kg: 'kg', kilogram: 'kg', kilograms: 'kg',
+    oz: 'oz', ounce: 'oz', ounces: 'oz',
+    lb: 'lb', lbs: 'lb', pound: 'lb', pounds: 'lb',
+    // Volume
+    ml: 'ml', milliliter: 'ml', milliliters: 'ml', millilitre: 'ml', millilitres: 'ml',
+    l: 'l', liter: 'l', liters: 'l', litre: 'l', litres: 'l',
+    cup: 'cup', cups: 'cup',
+    pt: 'pt', pint: 'pt', pints: 'pt',
+    qt: 'qt', quart: 'qt', quarts: 'qt',
+    gal: 'gal', gallon: 'gal', gallons: 'gal',
+    // Temperature
+    c: 'c', celcius: 'c', celsius: 'c',
+    f: 'f', fahrenheit: 'f',
+    k: 'k', kelvin: 'k',
+  };
+
+  private readonly unitDefinitions: Record<string, UnitDefinition> = {
+    // Length base: meter
+    mm: { category: 'length', toBase: (v) => v / 1000, fromBase: (v) => v * 1000 },
+    cm: { category: 'length', toBase: (v) => v / 100, fromBase: (v) => v * 100 },
+    m: { category: 'length', toBase: (v) => v, fromBase: (v) => v },
+    km: { category: 'length', toBase: (v) => v * 1000, fromBase: (v) => v / 1000 },
+    in: { category: 'length', toBase: (v) => v * 0.0254, fromBase: (v) => v / 0.0254 },
+    ft: { category: 'length', toBase: (v) => v * 0.3048, fromBase: (v) => v / 0.3048 },
+    yd: { category: 'length', toBase: (v) => v * 0.9144, fromBase: (v) => v / 0.9144 },
+    mi: { category: 'length', toBase: (v) => v * 1609.344, fromBase: (v) => v / 1609.344 },
+    // Mass base: kilogram
+    mg: { category: 'mass', toBase: (v) => v / 1_000_000, fromBase: (v) => v * 1_000_000 },
+    g: { category: 'mass', toBase: (v) => v / 1000, fromBase: (v) => v * 1000 },
+    kg: { category: 'mass', toBase: (v) => v, fromBase: (v) => v },
+    oz: { category: 'mass', toBase: (v) => v * 0.028349523125, fromBase: (v) => v / 0.028349523125 },
+    lb: { category: 'mass', toBase: (v) => v * 0.45359237, fromBase: (v) => v / 0.45359237 },
+    // Volume base: liter
+    ml: { category: 'volume', toBase: (v) => v / 1000, fromBase: (v) => v * 1000 },
+    l: { category: 'volume', toBase: (v) => v, fromBase: (v) => v },
+    cup: { category: 'volume', toBase: (v) => v * 0.2365882365, fromBase: (v) => v / 0.2365882365 },
+    pt: { category: 'volume', toBase: (v) => v * 0.473176473, fromBase: (v) => v / 0.473176473 },
+    qt: { category: 'volume', toBase: (v) => v * 0.946352946, fromBase: (v) => v / 0.946352946 },
+    gal: { category: 'volume', toBase: (v) => v * 3.785411784, fromBase: (v) => v / 3.785411784 },
+    // Temperature base: Celsius
+    c: { category: 'temperature', toBase: (v) => v, fromBase: (v) => v },
+    f: { category: 'temperature', toBase: (v) => (v - 32) * (5 / 9), fromBase: (v) => (v * 9) / 5 + 32 },
+    k: { category: 'temperature', toBase: (v) => v - 273.15, fromBase: (v) => v + 273.15 },
+  };
   
   constructor(
     private currencyService: CurrencyService,
@@ -165,20 +230,38 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
                 });
               }
             } else {
-              const result = this.evaluateExpression(trimmedLine);
-              newResults.push({
-                result: this.formatResult(result),
-                isError: false,
-                timestamp: new Date(),
-                isEmptySpace: false
-              });
-              if (trimmedLine.length > 31) {
+              const unitMatch = this.parseUnitConversion(trimmedLine);
+              if (unitMatch) {
                 newResults.push({
-                  result: "",
+                  result: this.formatResult(unitMatch.convertedValue),
                   isError: false,
                   timestamp: new Date(),
-                  isEmptySpace: true
+                  isEmptySpace: false
                 });
+                if (trimmedLine.length > 31) {
+                  newResults.push({
+                    result: "",
+                    isError: false,
+                    timestamp: new Date(),
+                    isEmptySpace: true
+                  });
+                }
+              } else {
+                const result = this.evaluateExpression(trimmedLine);
+                newResults.push({
+                  result: this.formatResult(result),
+                  isError: false,
+                  timestamp: new Date(),
+                  isEmptySpace: false
+                });
+                if (trimmedLine.length > 31) {
+                  newResults.push({
+                    result: "",
+                    isError: false,
+                    timestamp: new Date(),
+                    isEmptySpace: true
+                  });
+                }
               }
             }
           }
@@ -262,21 +345,70 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   }
 
   private parseCurrencyConversion(text: string): { amount: number; fromCurrency: string; toCurrency: string } | null {
-    // Pattern: "100 usd to idr" or "100usd to idr" or "100 usd to idr"
-    const currencyPattern = /^(\d+\.?\d*)\s*([a-zA-Z]{3})\s+to\s+([a-zA-Z]{3})$/i;
+    // Patterns:
+    // - "100 usd to idr"
+    // - "var1 usd tp idr"
+    // - "(a+b) usd to eur"
+    const currencyPattern = /^(.+?)\s*([a-zA-Z]{3})\s+(?:to|tp)\s+([a-zA-Z]{3})$/i;
     const match = text.match(currencyPattern);
     
     if (match) {
-      const amount = parseFloat(match[1]);
+      const amountExpression = match[1].trim();
       const fromCurrency = match[2];
       const toCurrency = match[3];
-      
-      if (this.currencyService.isCurrencyValid(fromCurrency) && this.currencyService.isCurrencyValid(toCurrency)) {
-        return { amount, fromCurrency, toCurrency };
+
+      try {
+        const amount = this.evaluateExpression(amountExpression);
+        if (this.currencyService.isCurrencyValid(fromCurrency) && this.currencyService.isCurrencyValid(toCurrency)) {
+          return { amount, fromCurrency, toCurrency };
+        }
+      } catch (error) {
+        return null;
       }
     }
     
     return null;
+  }
+
+  private parseUnitConversion(text: string): { convertedValue: number } | null {
+    // Patterns:
+    // - "10 km to mi"
+    // - "var1 ft tp m"
+    // - "(a+b) lb to kg"
+    const unitPattern = /^(.+?)\s*([a-zA-Z]+)\s+(?:to|tp)\s+([a-zA-Z]+)$/i;
+    const match = text.match(unitPattern);
+    if (!match) {
+      return null;
+    }
+
+    const amountExpression = match[1].trim();
+    const fromKey = this.normalizeUnit(match[2]);
+    const toKey = this.normalizeUnit(match[3]);
+    if (!fromKey || !toKey) {
+      return null;
+    }
+
+    const fromDefinition = this.unitDefinitions[fromKey];
+    const toDefinition = this.unitDefinitions[toKey];
+    if (!fromDefinition || !toDefinition) {
+      return null;
+    }
+    if (fromDefinition.category !== toDefinition.category) {
+      return null;
+    }
+
+    try {
+      const amount = this.evaluateExpression(amountExpression);
+      const convertedBase = fromDefinition.toBase(amount);
+      return { convertedValue: toDefinition.fromBase(convertedBase) };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  private normalizeUnit(raw: string): string | null {
+    const key = raw.trim().toLowerCase();
+    return this.unitAliases[key] || null;
   }
   
   private isCalculableExpression(text: string): boolean {
@@ -284,6 +416,9 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
       return true;
     }
     if (this.parseCurrencyConversion(text)) {
+      return true;
+    }
+    if (this.parseUnitConversion(text)) {
       return true;
     }
 
