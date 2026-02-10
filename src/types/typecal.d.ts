@@ -7,6 +7,7 @@ declare global {
     typecal?: {
       version: () => string;
       getTodayOpenTasks: () => Promise<NotionTask[]>;
+      markTaskDone: (taskId: string) => Promise<{ ok: boolean }>;
       getNotionConfig: () => Promise<NotionConfig>;
       setNotionConfig: (config: NotionConfig) => Promise<NotionConfig>;
       getTodayCalendarEvents: () => Promise<GoogleCalendarEvent[]>;

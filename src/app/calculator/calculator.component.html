@@ -48,7 +48,18 @@
 
         <ul class="notion-list" *ngIf="!notionLoading && !notionError && notionTasks.length > 0">
           <li *ngFor="let task of notionTasks" class="notion-item">
-            <div class="item-title">🗒️ {{ task.title }}</div>
+            <div class="notion-item-head">
+              <div class="item-title">🗒️ {{ task.title }}</div>
+              <button
+                class="icon-btn notion-done-btn"
+                type="button"
+                title="Mark task as Done"
+                aria-label="Mark task as Done"
+                (click)="markTaskDone(task)"
+                [disabled]="notionLoading || isTaskUpdating(task.id)">
+                ✓
+              </button>
+            </div>
             <div class="item-meta">
               <span class="item-meta-value" *ngIf="task.project">📁 {{ task.project }}</span>
               <span class="item-meta-value" *ngIf="task.due">📆 {{ task.due }}</span>

@@ -40,6 +40,7 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   notionConfigured = false;
   notionApiKeyInput = '';
   notionDbIdInput = '';
+  notionUpdatingTaskIds = new Set<string>();
   calendarEvents: GoogleCalendarEvent[] = [];
   calendarLoading = false;
   calendarError = '';
@@ -545,6 +546,28 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save Notion settings';
       this.notionError = message;
+    }
+  }
+
+  isTaskUpdating(taskId: string): boolean {
+    return this.notionUpdatingTaskIds.has(taskId);
+  }
+
+  async markTaskDone(task: NotionTask): Promise<void> {
+    if (!task.id || this.isTaskUpdating(task.id)) {
+      return;
+    }
+
+    this.notionError = '';
+    this.notionUpdatingTaskIds.add(task.id);
+    try {
+      await this.notionService.markTaskDone(task.id);
+      this.notionTasks = this.notionTasks.filter((item) => item.id !== task.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update Notion task';
+      this.notionError = message;
+    } finally {
+      this.notionUpdatingTaskIds.delete(task.id);
     }
   }
 

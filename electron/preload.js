@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('typecal', {
   version: () => '1.0.0',
   getTodayOpenTasks: () => ipcRenderer.invoke('notion:getTodayOpenTasks'),
+  markTaskDone: (taskId) => ipcRenderer.invoke('notion:markTaskDone', taskId),
   getNotionConfig: () => ipcRenderer.invoke('notion:getConfig'),
   setNotionConfig: (config) => ipcRenderer.invoke('notion:setConfig', config),
   getTodayCalendarEvents: () => ipcRenderer.invoke('googleCalendar:getTodayEvents'),

@@ -14,6 +14,13 @@ export class NotionService {
     return window.typecal!.getTodayOpenTasks();
   }
 
+  async markTaskDone(taskId: string): Promise<void> {
+    if (!this.isAvailable() || typeof window.typecal?.markTaskDone !== 'function') {
+      throw new Error('Notion integration unavailable');
+    }
+    await window.typecal.markTaskDone(taskId);
+  }
+
   async getConfig(): Promise<NotionConfig> {
     if (!this.isAvailable()) {
       throw new Error('Notion integration unavailable');

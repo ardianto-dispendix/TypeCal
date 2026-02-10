@@ -38,10 +38,10 @@ function writeConfig(app, partial) {
   return next;
 }
 
-async function notionRequest(pathname, body, apiKey) {
+async function notionRequest(pathname, body, apiKey, method = 'POST') {
   if (typeof fetch === 'function') {
     const response = await fetch(`https://api.notion.com${pathname}`, {
-      method: 'POST',
+      method,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ async function notionRequest(pathname, body, apiKey) {
       {
         hostname: 'api.notion.com',
         path: pathname,
-        method: 'POST',
+        method,
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
@@ -145,6 +145,30 @@ async function fetchTodayOpenTasks(app) {
   });
 }
 
+async function markTaskDone(app, taskId) {
+  const config = readConfig(app);
+  const apiKey = process.env.NOTION_API_KEY || config.notionApiKey;
+  if (!apiKey) {
+    throw new Error('Missing NOTION_API_KEY');
+  }
+  if (!taskId || typeof taskId !== 'string') {
+    throw new Error('Missing task id');
+  }
+
+  await notionRequest(
+    `/v1/pages/${taskId}`,
+    {
+      properties: {
+        Status: {
+          status: { name: 'Done' },
+        },
+      },
+    },
+    apiKey,
+    'PATCH'
+  );
+}
+
 function registerNotionIpc(app, ipcMain) {
   ipcMain.handle('notion:getConfig', () => {
     const config = readConfig(app);
@@ -169,6 +193,10 @@ function registerNotionIpc(app, ipcMain) {
   });
   ipcMain.handle('notion:getTodayOpenTasks', async () => {
     return fetchTodayOpenTasks(app);
+  });
+  ipcMain.handle('notion:markTaskDone', async (event, taskId) => {
+    await markTaskDone(app, taskId);
+    return { ok: true };
   });
 }
 
