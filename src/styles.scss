@@ -199,6 +199,11 @@ body {
   margin-bottom: 10px;
 }
 
+.notion-header-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
 .notion-title {
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   color: #e1e4e7;

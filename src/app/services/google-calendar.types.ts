@@ -9,6 +9,6 @@ export interface GoogleCalendarEvent {
 }
 
 export interface GoogleCalendarConfig {
-  googleCredentialsPath?: string;
-  googleTokenPath?: string;
+  calendarIcsUrls?: string[];
+  calendarIcsUrl?: string;
 }

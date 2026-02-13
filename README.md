@@ -9,6 +9,7 @@ A modern text-based calculator application built with Angular, similar to the Nu
 - **Mathematical functions**: Support for basic arithmetic, trigonometry, and more
 - **Clean interface**: Modern, responsive design
 - **Error handling**: Graceful handling of invalid expressions
+- **Google Calendar panel**: Shows today's events via private ICS URL
 
 ## Supported Operations
 
@@ -130,6 +131,28 @@ src/
 - **TypeScript**: Programming language
 - **SCSS**: Styling
 - **Custom Math Evaluator**: Secure expression evaluation without external dependencies
+
+## Calendar Setup (ICS Only, No OAuth Needed)
+
+TypeCal uses ICS feeds only (Google/Outlook/etc) and does not require Google OAuth tokens.
+
+1. Click `+` in the Calendar panel header to open the ICS input form.
+2. Paste one ICS source URL and click `Save`.
+3. If validation succeeds, the form closes automatically. Click `+` any time to add another URL.
+4. Click refresh (`↻`) to reload events.
+
+Supported sources:
+- Direct ICS URL (`https://.../calendar.ics`)
+- Outlook ICS URL (Office 365 shared calendar links)
+- Google private ICS URL (recommended)
+- Google shareable URL containing `cid=...` (auto-resolved)
+- `webcal://...` links (auto-converted to `https://...`)
+
+Behavior:
+- Duplicate URLs are rejected.
+- Saved URLs are persisted to config and used on startup and refresh.
+- Multiple saved ICS feeds are merged into one event list.
+- If any saved URL is invalid/unreachable, an error is shown with the failing URL index.
 
 ## Security
 

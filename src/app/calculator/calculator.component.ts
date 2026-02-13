@@ -46,8 +46,9 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   calendarError = '';
   calendarAvailable = false;
   calendarConfigured = false;
-  googleCredentialsPathInput = '';
-  googleTokenPathInput = '';
+  calendarIcsEditorOpen = false;
+  googleCalendarIcsUrlInput = '';
+  savedGoogleCalendarIcsUrls: string[] = [];
   private calculationRunId = 0;
   private readonly unitAliases: Record<string, string> = {
     // Length
@@ -581,9 +582,7 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
       const message = error instanceof Error ? error.message : 'Failed to load Google Calendar events';
       this.calendarError = message;
       this.calendarEvents = [];
-      if (message.toLowerCase().includes('missing google')) {
-        this.calendarConfigured = false;
-      }
+      this.calendarConfigured = false;
     } finally {
       this.calendarLoading = false;
     }
@@ -592,8 +591,9 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
   async loadGoogleCalendarConfig(): Promise<void> {
     try {
       const config = await this.googleCalendarService.getConfig();
-      this.googleCredentialsPathInput = config.googleCredentialsPath || '';
-      this.googleTokenPathInput = config.googleTokenPath || '';
+      const urls = this.normalizeCalendarIcsUrls(config);
+      this.savedGoogleCalendarIcsUrls = [...urls];
+      this.calendarIcsEditorOpen = urls.length === 0;
       await this.refreshCalendarEvents();
     } catch (error) {
       this.calendarConfigured = false;
@@ -602,18 +602,49 @@ export class CalculatorComponent implements AfterViewInit, OnInit {
 
   async saveGoogleCalendarConfig(): Promise<void> {
     this.calendarError = '';
+    const newUrl = this.googleCalendarIcsUrlInput.trim();
+    if (!newUrl) {
+      this.calendarError = 'Please enter an ICS URL.';
+      return;
+    }
+
+    if (this.savedGoogleCalendarIcsUrls.some((existing) => existing.trim() === newUrl)) {
+      this.calendarError = 'This ICS URL already exists.';
+      return;
+    }
+
+    const urls = [...this.savedGoogleCalendarIcsUrls, newUrl];
     const payload: GoogleCalendarConfig = {
-      googleCredentialsPath: this.googleCredentialsPathInput.trim(),
-      googleTokenPath: this.googleTokenPathInput.trim(),
+      calendarIcsUrls: urls,
     };
 
     try {
       await this.googleCalendarService.setConfig(payload);
       await this.refreshCalendarEvents();
+      if (this.calendarConfigured) {
+        this.savedGoogleCalendarIcsUrls = [...urls];
+        this.googleCalendarIcsUrlInput = '';
+        this.calendarIcsEditorOpen = false;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save Google Calendar settings';
       this.calendarError = message;
     }
+  }
+
+  openCalendarIcsEditor(): void {
+    this.calendarError = '';
+    this.calendarIcsEditorOpen = !this.calendarIcsEditorOpen;
+  }
+
+  private normalizeCalendarIcsUrls(config: GoogleCalendarConfig): string[] {
+    if (Array.isArray(config.calendarIcsUrls)) {
+      return config.calendarIcsUrls.map((item) => item.trim()).filter(Boolean);
+    }
+    if (typeof config.calendarIcsUrl === 'string' && config.calendarIcsUrl.trim()) {
+      return [config.calendarIcsUrl.trim()];
+    }
+    return [];
   }
 
   formatCalendarTime(event: GoogleCalendarEvent): string {

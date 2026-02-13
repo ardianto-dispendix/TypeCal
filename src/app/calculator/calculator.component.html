@@ -76,23 +76,33 @@
     <div class="integration-column calendar-panel">
       <div class="notion-header">
         <div class="notion-title">📅 Today - Calendar Events</div>
+        <div class="notion-header-actions">
+          <button
+            class="icon-btn"
+            type="button"
+            title="Add ICS URL"
+            aria-label="Add ICS URL"
+            (click)="openCalendarIcsEditor()"
+            [disabled]="calendarLoading || !calendarAvailable">
+            +
+          </button>
         <button
           class="icon-btn"
           type="button"
           title="Refresh calendar events"
           aria-label="Refresh calendar events"
           (click)="refreshCalendarEvents()"
-          [disabled]="calendarLoading || !calendarAvailable || !calendarConfigured">
+          [disabled]="calendarLoading || !calendarAvailable">
           ↻
         </button>
+        </div>
       </div>
 
       <div class="notion-body" *ngIf="calendarAvailable; else calendarUnavailable">
-        <div class="notion-setup" *ngIf="!calendarConfigured">
-          <div class="notion-state">Set credential and token paths if they are not in app data.</div>
+        <div class="notion-setup" *ngIf="calendarIcsEditorOpen">
+          <div class="notion-state">Add a new ICS URL. It will be saved only if validation succeeds.</div>
           <div class="notion-inputs">
-            <input class="notion-input" type="text" placeholder="credential.json path (optional)" [(ngModel)]="googleCredentialsPathInput" />
-            <input class="notion-input" type="text" placeholder="token.json path (optional)" [(ngModel)]="googleTokenPathInput" />
+            <input class="notion-input" type="text" placeholder="Private ICS URL or Google shareable link" [(ngModel)]="googleCalendarIcsUrlInput" />
             <button class="btn btn-small" (click)="saveGoogleCalendarConfig()" [disabled]="calendarLoading">Save</button>
           </div>
         </div>
